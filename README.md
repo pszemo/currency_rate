@@ -80,3 +80,21 @@ docker exec -it prestashop_apache composer install \
 ```
 
 > Nazwa kontenera może się różnić — sprawdź przez `docker ps`.
+
+## Możliwe optymalizacje i alternatywne podejścia
+ 
+### Cache
+Zamiast Memcached można użyć **Redis** — oferuje persistence danych między restartami i bardziej rozbudowane struktury danych. PrestaShop nie obsługuje Redisa natywnie, ale można go podpiąć przez własną implementację `Cache`.
+ 
+### Pobieranie kursów
+Aktualnie kursy są pobierane przez cron raz dziennie. Alternatywne podejścia:
+- **Queue/worker** (np. Symfony Messenger) — bardziej niezawodne niż cron, z obsługą retry przy błędach API
+- **Lazy loading** — pobieranie kursów dopiero przy pierwszym żądaniu danego dnia zamiast przez scheduled job
+ 
+### Źródło danych
+`NbpApiClient` implementuje konkretne API NBP. Bardziej elastyczne podejście to wprowadzenie interfejsu `ExchangeRateProviderInterface` — pozwoliłoby na łatwą podmianę źródła danych (np. ECB, Fixer.io) bez zmian w serwisie.
+ 
+### Baza danych
+Tabela `currency_rate` przy dużej liczbie walut i długim oknie historycznym może urosnąć. Możliwe optymalizacje:
+- indeks złożony na `(date DESC, currency_code)` dla szybszych zapytań historycznych
+- automatyczne usuwanie rekordów starszych niż X dni przez scheduled cleanup
